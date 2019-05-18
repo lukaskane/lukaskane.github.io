@@ -14,7 +14,7 @@
         .col {
             width: 10px;
             height: 10px;
-            margin: 2px;
+            margin: 1px;
             border-radius: 5px;
             background: rgb(218, 236, 243);
             display: inline-block;
@@ -38,31 +38,45 @@
             margin-left: 58px;
             margin-bottom: 2px;
         }
-
+        
         #controls>#left,
         #right,
         #down {
             display: inline-block;
+        }
+        
+        .color_cell{
+            width: 50px;
+            height: 50px;
+            margin: 5px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .active_color{
+            box-shadow: 0 0 8px grey;
         }
     </style>
 </head>
 
 <body>
     <div id="root"></div>
+    <div id="controls"></div>
 </body>
 <script>
     class Interface {
         constructor() {
             this.mapLimit = 50;
+            this.colors = ["red", "#a1f1ff", "#f87dff", "green", "blue", "yellow", "black"];
             this._drawArea();
+            this._drawControls();
             this.rows = document.getElementsByClassName("row");
             this.currentElement = this.getCell(this.mapLimit / 2, this.mapLimit / 2);
             this.currentElement.markChoosen();
         }
 
         _drawArea() {
-            var root = document.getElementById("root");
 
+            var root = document.getElementById("root");
             for (var i = 0; i <= this.mapLimit; i++) {
                 let row = document.createElement("div");
                 row.id = "row" + i;
@@ -77,8 +91,23 @@
                 }
             }
         }
+
+        _drawControls(){
+            
+            var color_bar = document.getElementById("controls");
+            
+            this.colors.forEach( color => {
+                let color_cell = document.createElement("div");
+                color_cell.id = "color_cell-" + color.replace("#", "_-dash-_");
+                color_cell.className = "color_cell";
+                color_cell.style.background = color.replace("_-dash-_", "#");
+                color_bar.appendChild(color_cell);
+            });
+        }
+
         move(x, y) {
             var cords = this.currentElement.coordinates;
+            // check for area out
             if (!this.currentElement.neighbours.up && y < 0) y = 0;
             if (!this.currentElement.neighbours.down && y > 0) y = 0;
             if (!this.currentElement.neighbours.left && x < 0) x = 0;
@@ -91,7 +120,15 @@
         getCell(x, y) {
             return new Cell(x, y, this);
         }
+        setCurrentElement(coords){
+            this.currentElement.markAfter();
+            this.currentElement = this.getCell(coords.x, coords.y);
+            this.currentElement.markChoosen();
+        }
 
+        setColor(color){
+            this._AFTER = color;
+        }
         clearArea() {
             for (var i = 0; i <= this.mapLimit; i++) {
                 for (var j = 0; j <= this.mapLimit; j++) {
@@ -101,13 +138,14 @@
         }
 
     }
+
     class Cell {
         constructor(x, y, control) {
             this.rows = document.getElementsByClassName("row");
             this.cell = this._getCell(x, y);
             this._CHOOSEN = "rgb(211, 121, 230)";
             this._DEFAULT = "rgb(218, 236, 243)";
-            this._AFTER = "rgb(247, 230, 255)";
+            this._AFTER = control._AFTER || "rgb(247, 230, 255)";
             this.mapLimit = control.mapLimit;
         }
         get neighbours() {
@@ -128,6 +166,10 @@
             return this.rows[y].children[x];
         }
 
+        setCell(el){
+            this.cell = el;
+        }
+        
         markChoosen() {
             this.cell.style.background = this._CHOOSEN;
         }
@@ -179,6 +221,27 @@
 
             var direction = directionMap[keyName];
             control.move(direction.x, direction.y);
+        }
+
+    }, false);
+
+    document.addEventListener('mousedown', (event) => {
+        console.log(event);
+        className = event.target.className;
+        classList = event.target.classList;
+        if(className == "col") {
+            
+            var path = event.path;
+            var coords = {x: path[0].id.match(/\d+/)[0], y: path[1].id.match(/\d+/)[0]};
+            control.setCurrentElement(coords);
+
+        }else if(className.indexOf("color_cell") > -1){
+
+            Array.from(event.target.parentElement.children).forEach(el => el.classList.remove("active_color"));
+
+            event.target.classList.add("active_color");
+            var color = event.target.id.replace("color_cell-", "").replace("_-dash-_", "#")
+            control.setColor(color);
         }
 
     }, false);
